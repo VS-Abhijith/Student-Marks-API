@@ -1,29 +1,26 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 import json
 
-app = FastAPI()
+def handler(request):
+    # Get 'name' query parameter
+    query = request.args.get('name')
+    names = query.split(",") if query else []
 
-# Enable CORS to allow GET requests from any origin
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    # Load student data from JSON file
+    with open("q-vercel-python.json", "r") as file:
+        student_list = json.load(file)
 
-# Load student data from q-vercel-python.json
-with open("q-vercel-python.json", "r") as file:
-    students_data = json.load(file)
+    # Convert list to dictionary for easy lookup
+    student_dict = {student["name"]: student["marks"] for student in student_list}
 
-@app.get("/api")
-async def get_marks(name: str):
-    names = name.split(",")
-    marks = []
-    for n in names:
-        if n in students_data["students"]:
-            marks.append(students_data["students"][n])
-        else:
-            marks.append(None)  # or any default value you prefer
-    return {"marks": marks}
+    # Find marks
+    marks = [student_dict.get(n, None) for n in names]
+
+    # Return JSON response with CORS headers
+    return {
+        "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json"
+        },
+        "body": json.dumps({"marks": marks})
+    }
